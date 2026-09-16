@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Vokabel Drill">
+<title>Vokabel Drill</title>
+<style>
+:root{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#202124;background:#f7f8fa}
+body{margin:0;padding:env(safe-area-inset-top) 14px env(safe-area-inset-bottom);max-width:720px;margin:auto}
+header{display:flex;justify-content:space-between;align-items:center;padding:14px 2px 8px}
+h1{font-size:23px;margin:0}.pill{background:white;border:1px solid #ddd;border-radius:999px;padding:7px 10px;font-size:13px}
+.progress{height:9px;background:#e2e5e9;border-radius:9px;overflow:hidden;margin:6px 0 12px}.bar{height:100%;background:#58a700;width:0}
+.info{display:flex;justify-content:space-between;font-size:13px;margin-bottom:12px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.col{display:flex;flex-direction:column;gap:10px}
+.card{min-height:62px;border:2px solid #d9dde2;background:white;border-radius:13px;padding:10px 8px;font-size:16px;font-weight:650;box-shadow:0 2px 0 #d9dde2;display:flex;align-items:center;justify-content:center;text-align:center;touch-action:manipulation}
+.card.sel{border-color:#1cb0f6;background:#eaf7ff}.card.bad{border-color:#ff4b4b;background:#fff0f0}.card.done{visibility:hidden}
+.controls{display:flex;gap:8px;margin:16px 0}.controls button,select{border:0;border-radius:11px;padding:12px;background:#e5e7eb;font-weight:650;font-size:14px}
+.controls button{flex:1}.primary{background:#58cc02!important;color:white}
+.panel{background:white;border:1px solid #ddd;border-radius:13px;padding:12px;margin:10px 0;font-size:14px}
+.small{font-size:12px;color:#667}.center{text-align:center}.hidden{display:none}
+#result{font-size:18px;font-weight:700}
+</style>
+</head><body>
+<header><h1>🇬🇧 Vokabel Drill 🇩🇪</h1><span class="pill" id="modeLabel">Alle</span></header>
+<div class="progress"><div class="bar" id="bar"></div></div>
+<div class="info"><span id="progressText"></span><span id="stats"></span></div>
+<div class="grid"><div class="col" id="left"></div><div class="col" id="right"></div></div>
+<div id="resultPanel" class="panel center hidden"><div id="result"></div><div id="resultSub" class="small"></div></div>
+<div class="controls">
+<button onclick="restart(false)">Neu mischen</button>
+<button id="mistakeBtn" onclick="restart(true)">Fehler üben</button>
+</div>
+<div class="panel">
+<b>Einstellung</b><br><br>
+Rundengröße:
+<select id="roundSize" onchange="saveSettings();restart(currentMistakesOnly)"><option>5</option><option>4</option><option>6</option></select>
+<label style="display:block;margin-top:12px"><input id="repeatWrong" type="checkbox" checked onchange="saveSettings()"> Fehler am Ende erneut abfragen</label>
+<div class="small" style="margin-top:10px">Fortschritt und schwierige Wörter werden auf diesem Gerät gespeichert.</div>
+</div>
+<script>
+const VOCAB=[{"en": "what", "de": "was"}, {"en": "can", "de": "können"}, {"en": "you", "de": "du; dich; ihr; euch"}, {"en": "to see", "de": "sehen"}, {"en": "I", "de": "ich"}, {"en": "I can see ...", "de": "Ich kann ... sehen."}, {"en": "a / an", "de": "ein / eine"}, {"en": "car", "de": "das Auto"}, {"en": "to hear", "de": "hören"}, {"en": "colour", "de": "die Farbe"}, {"en": "is", "de": "ist"}, {"en": "your", "de": "dein(e); euer/eure"}, {"en": "favourite", "de": "Lieblings-"}, {"en": "my", "de": "mein(e)"}, {"en": "game", "de": "das Spiel"}, {"en": "I spy with my little eye ...", "de": "Ich sehe was, was du nicht siehst ..."}, {"en": "something", "de": "etwas"}, {"en": "the", "de": "der / die / das"}, {"en": "dog", "de": "der Hund"}, {"en": "yes", "de": "ja"}, {"en": "kid", "de": "das Kind"}, {"en": "My name is ...", "de": "Ich heiße ..."}, {"en": "I'm (= I am)", "de": "ich bin / ich heiße"}, {"en": "hi", "de": "hi / hallo"}, {"en": "hello", "de": "hallo"}, {"en": "we", "de": "wir"}, {"en": "we're (= we are)", "de": "wir sind"}, {"en": "from", "de": "von / aus"}, {"en": "in", "de": "in"}, {"en": "too", "de": "auch"}, {"en": "but", "de": "aber"}, {"en": "to live", "de": "leben / wohnen"}, {"en": "now", "de": "jetzt"}, {"en": "number", "de": "die Zahl / die Ziffer / die Nummer"}, {"en": "what's (= what is)", "de": "was ist / wie lautet"}, {"en": "phone", "de": "das Telefon"}, {"en": "and", "de": "und"}, {"en": "mobile phone", "de": "das Mobiltelefon / Handy"}, {"en": "It's (= It is)", "de": "es ist"}, {"en": "to say", "de": "sagen"}, {"en": "red", "de": "rot"}, {"en": "orange", "de": "orange"}, {"en": "yellow", "de": "gelb"}, {"en": "green", "de": "grün"}, {"en": "blue", "de": "blau"}, {"en": "purple", "de": "lila"}, {"en": "pink", "de": "pink / rosa"}, {"en": "brown", "de": "braun"}, {"en": "white", "de": "weiß"}, {"en": "grey", "de": "grau"}, {"en": "black", "de": "schwarz"}, {"en": "one", "de": "eins"}, {"en": "two", "de": "zwei"}, {"en": "three", "de": "drei"}, {"en": "four", "de": "vier"}, {"en": "five", "de": "fünf"}, {"en": "six", "de": "sechs"}, {"en": "seven", "de": "sieben"}, {"en": "eight", "de": "acht"}, {"en": "nine", "de": "neun"}, {"en": "ten", "de": "zehn"}, {"en": "eleven", "de": "elf"}, {"en": "twelve", "de": "zwölf"}, {"en": "What's your name?", "de": "Wie heißt du?"}, {"en": "How old are you?", "de": "Wie alt bist du?"}, {"en": "I'm eleven.", "de": "Ich bin elf."}, {"en": "Where are you from?", "de": "Wo kommst du her?"}, {"en": "I'm from ...", "de": "Ich komme aus ..."}, {"en": "What's your favourite colour?", "de": "Was ist deine Lieblingsfarbe?"}, {"en": "My favourite colour is ...", "de": "Meine Lieblingsfarbe ist ..."}, {"en": "What's your mobile phone number?", "de": "Wie lautet deine Handynummer?"}];
+let pool=[], queue=[], current=[], leftSel=null, rightSel=null, correct=0, attempts=0, wrongSet=new Set(), currentMistakesOnly=false;
+const key="vocabDrillStatsV1", setKey="vocabDrillSettingsV1";
+let learned=JSON.parse(localStorage.getItem(key)||"{}");
+function shuffle(a){a=[...a];for(let i=a.length-1;i>0;i--){let j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+function id(p){return p.en+"|||"+p.de}
+function saveSettings(){localStorage.setItem(setKey,JSON.stringify({n:+roundSize.value,repeat:repeatWrong.checked}))}
+function loadSettings(){let s=JSON.parse(localStorage.getItem(setKey)||"{}");if(s.n)roundSize.value=s.n;if(s.repeat===false)repeatWrong.checked=false}
+function restart(mistakesOnly){
+ currentMistakesOnly=mistakesOnly;
+ let mistakes=VOCAB.filter(p=>(learned[id(p)]?.wrong||0)>0 && (learned[id(p)]?.wrong||0)>(learned[id(p)]?.right||0)/2);
+ pool=(mistakesOnly&&mistakes.length)?mistakes:VOCAB;
+ modeLabel.textContent=mistakesOnly&&mistakes.length?"Fehler":"Alle";
+ queue=shuffle(pool); wrongSet=new Set(); correct=0; attempts=0; resultPanel.classList.add("hidden"); nextRound();
+}
+function nextRound(){
+ let n=+roundSize.value; current=queue.splice(0,n);
+ if(!current.length){
+   if(repeatWrong.checked && wrongSet.size){queue=shuffle(VOCAB.filter(p=>wrongSet.has(id(p))));wrongSet.clear();nextRound();return}
+   finish();return;
+ }
+ render();
+}
+function render(){
+ left.innerHTML="";right.innerHTML="";leftSel=rightSel=null;
+ let L=shuffle(current),R=shuffle(current);
+ L.forEach(p=>left.appendChild(card(p.en,p,"L")));
+ R.forEach(p=>right.appendChild(card(p.de,p,"R")));
+ update();
+}
+function card(txt,p,side){let b=document.createElement("button");b.className="card";b.textContent=txt;b.dataset.id=id(p);b.onclick=()=>select(b,side);return b}
+function select(el,side){
+ if(el.classList.contains("done"))return;
+ if(side==="L"){document.querySelectorAll("#left .card").forEach(x=>x.classList.remove("sel"));leftSel=el}
+ else{document.querySelectorAll("#right .card").forEach(x=>x.classList.remove("sel"));rightSel=el}
+ el.classList.add("sel"); if(leftSel&&rightSel)check();
+}
+function check(){
+ attempts++; let ok=leftSel.dataset.id===rightSel.dataset.id, k=leftSel.dataset.id;
+ if(ok){
+   correct++; learned[k]=learned[k]||{right:0,wrong:0};learned[k].right++;
+   let a=leftSel,b=rightSel;a.classList.remove("sel");b.classList.remove("sel");a.classList.add("done");b.classList.add("done");
+   leftSel=rightSel=null;localStorage.setItem(key,JSON.stringify(learned));update();
+   if([...document.querySelectorAll(".card")].every(x=>x.classList.contains("done")))setTimeout(nextRound,250);
+ }else{
+   [leftSel,rightSel].forEach(x=>{x.classList.remove("sel");x.classList.add("bad");setTimeout(()=>x.classList.remove("bad"),450)});
+   let actual=current.find(p=>id(p)===leftSel.dataset.id); wrongSet.add(id(actual));
+   learned[id(actual)]=learned[id(actual)]||{right:0,wrong:0};learned[id(actual)].wrong++;
+   localStorage.setItem(key,JSON.stringify(learned));leftSel=rightSel=null;update();
+ }
+}
+function update(){
+ let done=pool.length-queue.length-current.filter(p=>{let e=[...document.querySelectorAll(".card")].find(x=>x.dataset.id===id(p));return e&&!e.classList.contains("done")}).length;
+ done=Math.max(0,Math.min(pool.length,done));
+ progressText.textContent=`${done} / ${pool.length} Paare`;
+ stats.textContent=`✓ ${correct} · Versuche ${attempts}`;
+ bar.style.width=(pool.length?done/pool.length*100:0)+"%";
+}
+function finish(){
+ left.innerHTML="";right.innerHTML="";bar.style.width="100%";progressText.textContent=`${pool.length} / ${pool.length} Paare`;
+ resultPanel.classList.remove("hidden");let accuracy=attempts?Math.round(correct/attempts*100):100;
+ result.textContent="Geschafft! 🎉";resultSub.textContent=`${correct} richtige Zuordnungen · Trefferquote ${accuracy} %`;
+}
+loadSettings();restart(false);
+</script></body></html>
