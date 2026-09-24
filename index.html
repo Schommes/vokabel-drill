@@ -23,8 +23,8 @@ input,select,textarea{width:100%;border:2px solid #dbe8f2;border-radius:13px;pad
 <div id="editor" class="hidden">
 <button onclick="show('home')">‹ Zurück</button><div class="card"><label>Titel</label><input id="title"><label>Fremdsprache</label><select id="lang"><option value="en-US">Englisch</option><option value="fr-FR">Französisch</option><option value="es-ES">Spanisch</option><option value="it-IT">Italienisch</option><option value="pt-PT">Portugiesisch</option><option value="nl-NL">Niederländisch</option></select>
 <div class="row"><label><input type="checkbox" id="case" style="width:auto"> Groß-/Kleinschreibung beachten</label><label><input type="checkbox" id="accent" style="width:auto" checked> Akzente beachten</label></div></div>
-<div class="card"><b>Vokabel hinzufügen</b><label>Fremdsprache</label><input id="foreign"><label>Deutsch – mehrere Lösungen mit | trennen</label><input id="german"><div class="row"><button onclick="addWord()">＋ Hinzufügen</button><button onclick="dictateGerman()">🎙 Deutsch diktieren</button></div></div>
-<div class="card"><b>Masseneingabe</b><div class="muted">Eine Zeile je Paar, z. B. kitchen = Küche | die Küche</div><textarea id="bulk" rows="5"></textarea><button onclick="bulkAdd()">Übernehmen</button>
+<div class="card"><b>Vokabel hinzufügen</b><label>Fremdsprache</label><input id="foreign" autocapitalize="none" autocorrect="off" spellcheck="false"><label>Deutsch – mehrere Lösungen mit | trennen</label><input id="german"><div class="row"><button onclick="addWord()">＋ Hinzufügen</button><button id="dictateBtn" type="button" onclick="dictateGerman()">🎙 Deutsch diktieren</button></div><div id="dictateStatus" class="muted" aria-live="polite"></div></div>
+<div class="card"><b>Masseneingabe</b><div class="muted">Eine Zeile je Paar, z. B. kitchen = Küche | die Küche</div><textarea id="bulk" rows="5" autocapitalize="none" autocorrect="off" spellcheck="false"></textarea><button onclick="bulkAdd()">Übernehmen</button>
 <label style="margin-top:12px;display:block">Foto auswählen (Texterkennung hängt von Browser/iOS ab)</label><input type="file" accept="image/*" capture="environment" onchange="photoHint()"></div>
 <div class="card"><b>Vokabeln</b><div id="words" class="list"></div></div><button class="green" onclick="saveList()">Liste speichern</button></div>
 
@@ -33,7 +33,7 @@ input,select,textarea{width:100%;border:2px solid #dbe8f2;border-radius:13px;pad
 
 <div id="quiz" class="hidden"><button onclick="endQuiz()">‹ Beenden</button><div class="progress"><div id="bar" class="bar"></div></div><div id="qcount" class="muted center"></div><div class="card big" id="prompt"></div>
 <div id="speakUI" class="card center hidden"><button class="primary" style="font-size:28px" onclick="listen()">🎙 Sprechen</button><div id="heard" class="big"></div></div>
-<div id="writeUI" class="card hidden"><input id="answer" autocomplete="off" autocapitalize="none" onkeydown="if(event.key==='Enter')checkWrite()"><button class="primary" onclick="checkWrite()">Prüfen</button></div>
+<div id="writeUI" class="card hidden"><input id="answer" autocomplete="off" autocapitalize="none" autocorrect="off" spellcheck="false" onkeydown="if(event.key==='Enter')checkWrite()"><button class="primary" onclick="checkWrite()">Prüfen</button></div>
 <div id="feedback" class="card center hidden"></div></div>
 
 <div id="finish" class="hidden center"><div id="fire" class="fire"></div><div class="card"><div class="big">🏆 Super!</div><h2>Alle Vokabeln geschafft!</h2><p id="finishInfo"></p><button class="primary" onclick="start(lastMode)">Noch einmal</button> <button onclick="show('modes')">Zur Liste</button></div></div>
@@ -66,14 +66,33 @@ function start(mode){lastMode=mode;let l=D.lists.find(x=>x.id===currentId);queue
 function next(){if(!queue.length)return complete();current=queue.shift();let l=D.lists.find(x=>x.id===currentId);document.getElementById('prompt').textContent=lastMode==='speak'?current.f:current.g[0];document.getElementById('feedback').classList.add('hidden');document.getElementById('heard').textContent='';document.getElementById('answer').value='';document.getElementById('qcount').textContent=`Noch ${queue.length+1} Vokabel${queue.length?'n':''}`;document.getElementById('bar').style.width=((l.words.length-queue.length-1)/l.words.length*100)+'%';if(lastMode==='write')setTimeout(()=>document.getElementById('answer').focus(),100)}
 function verdict(ok,msg){feedback.className='card center '+(ok?'ok':'bad');feedback.textContent=msg;feedback.classList.remove('hidden');tone(ok);if(!ok)queue.push(current);setTimeout(next,700)}
 function checkWrite(){let l=D.lists.find(x=>x.id===currentId);verdict(norm(answer.value,l)===norm(current.f,l),norm(answer.value,l)===norm(current.f,l)?'✓ Richtig!':'✗ Noch einmal')}
-function listen(){let SR=window.SpeechRecognition||window.webkitSpeechRecognition;if(!SR)return alert('Die Spracherkennung wird von diesem Browser nicht unterstützt. Bitte die aktuelle Safari-Version verwenden.');let r=new SR();r.lang='de-DE';r.interimResults=false;r.onresult=e=>{let t=e.results[0][0].transcript;heard.textContent='Erkannt: '+t;let l=D.lists.find(x=>x.id===currentId),ok=current.g.some(g=>norm(g,l)===norm(t,l));setTimeout(()=>verdict(ok,ok?'✓ Richtig!':'✗ Noch einmal'),250)};r.onerror=()=>heard.textContent='Nicht verstanden – bitte erneut versuchen.';r.start()}
+let activeRecognition=null,speechTimer=null;
+function speechErrorText(c){if(c==='not-allowed'||c==='service-not-allowed')return 'Mikrofonzugriff wurde nicht erlaubt.';if(c==='no-speech')return 'Nichts verstanden – bitte erneut versuchen.';if(c==='audio-capture')return 'Kein Mikrofon verfügbar.';return 'Spracherkennung beendet – bitte erneut versuchen.'}
+function clearSpeech(){if(speechTimer){clearTimeout(speechTimer);speechTimer=null}if(activeRecognition){try{activeRecognition.abort()}catch(e){}activeRecognition=null}}
+function listen(){
+ const SR=window.SpeechRecognition||window.webkitSpeechRecognition;if(!SR)return alert('Spracherkennung wird von diesem Browser nicht unterstützt.');
+ clearSpeech();const h=el('heard');h.textContent='🎙 Ich höre zu …';const r=new SR();activeRecognition=r;r.lang='de-DE';r.interimResults=false;r.maxAlternatives=1;let got=false;
+ r.onresult=e=>{got=true;const t=e.results[0][0].transcript;h.textContent='Erkannt: '+t;const l=D.lists.find(x=>x.id===currentId),ok=current.g.some(g=>norm(g,l)===norm(t,l));setTimeout(()=>verdict(ok,ok?'✓ Richtig!':'✗ Noch einmal'),300)};
+ r.onerror=e=>h.textContent=speechErrorText(e.error);
+ r.onend=()=>{if(speechTimer){clearTimeout(speechTimer);speechTimer=null}activeRecognition=null;if(!got&&h.textContent==='🎙 Ich höre zu …')h.textContent='Nichts verstanden – bitte erneut versuchen.'};
+ speechTimer=setTimeout(()=>{if(activeRecognition===r){h.textContent='Zeit abgelaufen – bitte erneut versuchen.';try{r.abort()}catch(e){}}},8000);
+ try{r.start()}catch(e){h.textContent='Spracherkennung konnte nicht gestartet werden.';clearSpeech()}
+}
 function tone(ok){if(!D.sound)return;try{let a=new (AudioContext||webkitAudioContext)(),o=a.createOscillator(),g=a.createGain();o.frequency.value=ok?660:220;o.connect(g);g.connect(a.destination);g.gain.value=.04;o.start();o.stop(a.currentTime+.12)}catch(e){}}
 function complete(){let sec=Math.round((Date.now()-started)/1000);D.sessions.push({p:D.active,l:currentId,mode:lastMode,sec,date:new Date().toISOString()});save();if(D.vibrate&&navigator.vibrate)navigator.vibrate([80,40,80]);show('finish');el('finishInfo').textContent=`Zeit: ${Math.floor(sec/60)}:${String(sec%60).padStart(2,'0')} Minuten`;el('fire').innerHTML='';for(let i=0;i<55;i++){let s=document.createElement('span');s.className='conf';s.textContent=['✨','⭐','🎉','●'][i%4];s.style.left=Math.random()*100+'%';s.style.animationDelay=Math.random()*.5+'s';el('fire').appendChild(s)}setTimeout(()=>el('fire').innerHTML='',2600)}
 function endQuiz(){show('modes')}
 function showStats(){show('stats');let ss=D.sessions.filter(s=>s.p===D.active),tot=ss.reduce((a,s)=>a+s.sec,0),today=new Date().toISOString().slice(0,10),td=ss.filter(s=>s.date.slice(0,10)===today).reduce((a,s)=>a+s.sec,0);el('statbody').innerHTML=`<div class=big>${Math.round(td/60)} Min. heute</div><p>Gesamt: <b>${Math.round(tot/60)} Minuten</b></p><p>Abgeschlossene Übungen: <b>${ss.length}</b></p>`}
 function exportData(){let b=new Blob([JSON.stringify(D,null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='Vokabeltrainer-Backup.json';a.click()}
 function importData(el){let f=el.files[0];if(!f)return;let r=new FileReader();r.onload=()=>{try{D=JSON.parse(r.result);save();show('home')}catch(e){alert('Backup konnte nicht gelesen werden.')}};r.readAsText(f)}
-function dictateGerman(){let SR=window.SpeechRecognition||window.webkitSpeechRecognition;if(!SR)return alert('Spracherkennung hier nicht verfügbar.');let r=new SR();r.lang='de-DE';r.onresult=e=>el('german').value=e.results[0][0].transcript;r.start()}
+function dictateGerman(){
+ const SR=window.SpeechRecognition||window.webkitSpeechRecognition;if(!SR)return alert('Spracherkennung wird von diesem Browser nicht unterstützt.');
+ clearSpeech();const btn=el('dictateBtn'),st=el('dictateStatus');btn.disabled=true;st.textContent='🎙 Ich höre zu …';const r=new SR();activeRecognition=r;r.lang='de-DE';r.interimResults=false;r.maxAlternatives=1;let got=false;
+ r.onresult=e=>{got=true;const t=e.results[0][0].transcript;el('german').value=t;st.textContent='Erkannt: '+t};
+ r.onerror=e=>st.textContent=speechErrorText(e.error);
+ r.onend=()=>{if(speechTimer){clearTimeout(speechTimer);speechTimer=null}activeRecognition=null;btn.disabled=false;if(!got&&st.textContent==='🎙 Ich höre zu …')st.textContent='Nichts verstanden – bitte erneut versuchen.'};
+ speechTimer=setTimeout(()=>{if(activeRecognition===r){st.textContent='Zeit abgelaufen – bitte erneut versuchen.';try{r.abort()}catch(e){}}},8000);
+ try{r.start()}catch(e){st.textContent='Spracherkennung konnte nicht gestartet werden.';btn.disabled=false;clearSpeech()}
+}
 function photoHint(){alert('Foto wurde ausgewählt. Vollautomatische OCR ist in dieser rein lokalen GitHub-Pages-Version noch nicht zuverlässig genug. Nutze vorerst Masseneingabe oder die iOS-Texterkennung zum Kopieren des Textes; die Importmaske bleibt für die spätere OCR-Erweiterung vorbereitet.')}
 show('home');
 </script></body></html>
