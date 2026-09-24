@@ -1,0 +1,15 @@
+{
+  "name": "Vokabeltrainer",
+  "short_name": "Vokabeltrainer",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#f7fbff",
+  "theme_color": "#2a99e6",
+  "icons": [
+    {
+      "src": "icon.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

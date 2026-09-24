@@ -1,108 +1,74 @@
-<!doctype html>
-<html lang="de">
-<head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="apple-mobile-web-app-title" content="Vokabel Drill">
-<title>Vokabel Drill</title>
+<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Vokabeltrainer"><meta name="theme-color" content="#2a99e6">
+<link rel="apple-touch-icon" href="apple-touch-icon.png"><link rel="manifest" href="manifest.webmanifest"><title>Vokabeltrainer</title>
 <style>
-:root{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#202124;background:#f7f8fa}
-body{margin:0;padding:env(safe-area-inset-top) 14px env(safe-area-inset-bottom);max-width:720px;margin:auto}
-header{display:flex;justify-content:space-between;align-items:center;padding:14px 2px 8px}
-h1{font-size:23px;margin:0}.pill{background:white;border:1px solid #ddd;border-radius:999px;padding:7px 10px;font-size:13px}
-.progress{height:9px;background:#e2e5e9;border-radius:9px;overflow:hidden;margin:6px 0 12px}.bar{height:100%;background:#58a700;width:0}
-.info{display:flex;justify-content:space-between;font-size:13px;margin-bottom:12px}
-.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.col{display:flex;flex-direction:column;gap:10px}
-.card{min-height:62px;border:2px solid #d9dde2;background:white;border-radius:13px;padding:10px 8px;font-size:16px;font-weight:650;box-shadow:0 2px 0 #d9dde2;display:flex;align-items:center;justify-content:center;text-align:center;touch-action:manipulation}
-.card.sel{border-color:#1cb0f6;background:#eaf7ff}.card.bad{border-color:#ff4b4b;background:#fff0f0}.card.done{visibility:hidden}
-.controls{display:flex;gap:8px;margin:16px 0}.controls button,select{border:0;border-radius:11px;padding:12px;background:#e5e7eb;font-weight:650;font-size:14px}
-.controls button{flex:1}.primary{background:#58cc02!important;color:white}
-.panel{background:white;border:1px solid #ddd;border-radius:13px;padding:12px;margin:10px 0;font-size:14px}
-.small{font-size:12px;color:#667}.center{text-align:center}.hidden{display:none}
-#result{font-size:18px;font-weight:700}
-</style>
-</head><body>
-<header><h1>🇬🇧 Vokabel Drill 🇩🇪</h1><span class="pill" id="modeLabel">Alle</span></header>
-<div class="progress"><div class="bar" id="bar"></div></div>
-<div class="info"><span id="progressText"></span><span id="stats"></span></div>
-<div class="grid"><div class="col" id="left"></div><div class="col" id="right"></div></div>
-<div id="resultPanel" class="panel center hidden"><div id="result"></div><div id="resultSub" class="small"></div></div>
-<div class="controls">
-<button onclick="restart(false)">Neu mischen</button>
-<button id="mistakeBtn" onclick="restart(true)">Fehler üben</button>
-</div>
-<div class="panel">
-<b>Einstellung</b><br><br>
-Rundengröße:
-<select id="roundSize" onchange="saveSettings();restart(currentMistakesOnly)"><option>5</option><option>4</option><option>6</option></select>
-<label style="display:block;margin-top:12px"><input id="repeatWrong" type="checkbox" checked onchange="saveSettings()"> Fehler am Ende erneut abfragen</label>
-<div class="small" style="margin-top:10px">Fortschritt und schwierige Wörter werden auf diesem Gerät gespeichert.</div>
-</div>
+:root{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#f4f9ff;color:#17324d}*{box-sizing:border-box}
+body{margin:0;max-width:850px;margin:auto;padding:calc(14px + env(safe-area-inset-top)) 14px calc(20px + env(safe-area-inset-bottom))}
+h1{margin:4px 0 14px;font-size:28px}.top{display:flex;justify-content:space-between;align-items:center}.card{background:white;border-radius:20px;padding:16px;margin:12px 0;box-shadow:0 3px 14px #bfd5e544}
+button,input,select,textarea{font:inherit}button{border:0;border-radius:15px;padding:13px 15px;font-weight:750;background:#e7f2fb;color:#17324d}
+.primary{background:#2a99e6;color:white}.green{background:#39b54a;color:white}.danger{background:#ffe7e7;color:#a22}.row{display:flex;gap:9px;align-items:center;flex-wrap:wrap}
+input,select,textarea{width:100%;border:2px solid #dbe8f2;border-radius:13px;padding:12px;background:white}label{font-size:13px;font-weight:700}
+.list{display:grid;gap:9px}.item{display:flex;justify-content:space-between;gap:10px;align-items:center;padding:13px;background:#fff8d9;border-radius:15px}
+.tabs{display:flex;gap:7px;overflow:auto}.tabs button{white-space:nowrap}.hidden{display:none!important}.big{font-size:31px;text-align:center;font-weight:800;padding:25px}
+.progress{height:10px;background:#dcebf5;border-radius:8px;overflow:hidden}.bar{height:100%;background:#39b54a}
+.ok{background:#dcf6df}.bad{background:#ffe2e2}.muted{color:#698096;font-size:13px}.center{text-align:center}
+.fire{position:fixed;inset:0;pointer-events:none;overflow:hidden}.conf{position:absolute;font-size:28px;animation:fall 2.2s linear forwards}@keyframes fall{from{transform:translateY(-10vh) rotate(0)}to{transform:translateY(110vh) rotate(720deg)}}
+</style></head><body>
+<div class="top"><h1>📚 Vokabeltrainer</h1><button onclick="show('settings')">⚙️</button></div>
+<div id="home">
+<div class="card"><b>Profil</b><div class="row" id="profiles"></div><button onclick="addProfile()">＋ Profil</button></div>
+<div class="card"><div class="top"><b>Meine Vokabellisten</b><button class="primary" onclick="newList()">＋ Neue Liste</button></div><div id="lists" class="list"></div></div>
+<div class="card"><button onclick="showStats()">📊 Lernstatistik</button></div></div>
+
+<div id="editor" class="hidden">
+<button onclick="show('home')">‹ Zurück</button><div class="card"><label>Titel</label><input id="title"><label>Fremdsprache</label><select id="lang"><option value="en-US">Englisch</option><option value="fr-FR">Französisch</option><option value="es-ES">Spanisch</option><option value="it-IT">Italienisch</option><option value="pt-PT">Portugiesisch</option><option value="nl-NL">Niederländisch</option></select>
+<div class="row"><label><input type="checkbox" id="case" style="width:auto"> Groß-/Kleinschreibung beachten</label><label><input type="checkbox" id="accent" style="width:auto" checked> Akzente beachten</label></div></div>
+<div class="card"><b>Vokabel hinzufügen</b><label>Fremdsprache</label><input id="foreign"><label>Deutsch – mehrere Lösungen mit | trennen</label><input id="german"><div class="row"><button onclick="addWord()">＋ Hinzufügen</button><button onclick="dictateGerman()">🎙 Deutsch diktieren</button></div></div>
+<div class="card"><b>Masseneingabe</b><div class="muted">Eine Zeile je Paar, z. B. kitchen = Küche | die Küche</div><textarea id="bulk" rows="5"></textarea><button onclick="bulkAdd()">Übernehmen</button>
+<label style="margin-top:12px;display:block">Foto auswählen (Texterkennung hängt von Browser/iOS ab)</label><input type="file" accept="image/*" capture="environment" onchange="photoHint()"></div>
+<div class="card"><b>Vokabeln</b><div id="words" class="list"></div></div><button class="green" onclick="saveList()">Liste speichern</button></div>
+
+<div id="modes" class="hidden"><button onclick="show('home')">‹ Zurück</button><h2 id="modeTitle"></h2>
+<div class="card list"><button class="primary" onclick="start('speak')">🎙 Fremdsprache → Deutsch sprechen</button><button class="primary" onclick="start('write')">⌨️ Deutsch → Fremdsprache schreiben</button><button onclick="editCurrent()">✏️ Vokabeln bearbeiten</button></div></div>
+
+<div id="quiz" class="hidden"><button onclick="endQuiz()">‹ Beenden</button><div class="progress"><div id="bar" class="bar"></div></div><div id="qcount" class="muted center"></div><div class="card big" id="prompt"></div>
+<div id="speakUI" class="card center hidden"><button class="primary" style="font-size:28px" onclick="listen()">🎙 Sprechen</button><div id="heard" class="big"></div></div>
+<div id="writeUI" class="card hidden"><input id="answer" autocomplete="off" autocapitalize="none" onkeydown="if(event.key==='Enter')checkWrite()"><button class="primary" onclick="checkWrite()">Prüfen</button></div>
+<div id="feedback" class="card center hidden"></div></div>
+
+<div id="finish" class="hidden center"><div id="fire" class="fire"></div><div class="card"><div class="big">🏆 Super!</div><h2>Alle Vokabeln geschafft!</h2><p id="finishInfo"></p><button class="primary" onclick="start(lastMode)">Noch einmal</button> <button onclick="show('modes')">Zur Liste</button></div></div>
+
+<div id="stats" class="hidden"><button onclick="show('home')">‹ Zurück</button><div class="card"><h2>📊 Lernstatistik</h2><div id="statbody"></div></div></div>
+<div id="settings" class="hidden"><button onclick="show('home')">‹ Zurück</button><div class="card"><h2>Einstellungen</h2><label><input type="checkbox" id="sound" style="width:auto" checked onchange="save()"> Töne</label><br><label><input type="checkbox" id="vibrate" style="width:auto" checked onchange="save()"> Vibration (falls unterstützt)</label></div>
+<div class="card"><button onclick="exportData()">⬆️ Backup exportieren</button><label>Backup importieren</label><input type="file" accept=".json,application/json" onchange="importData(this)"></div></div>
 <script>
-const VOCAB=[{"en": "what", "de": "was"}, {"en": "can", "de": "können"}, {"en": "you", "de": "du; dich; ihr; euch"}, {"en": "to see", "de": "sehen"}, {"en": "I", "de": "ich"}, {"en": "I can see ...", "de": "Ich kann ... sehen."}, {"en": "a / an", "de": "ein / eine"}, {"en": "car", "de": "das Auto"}, {"en": "to hear", "de": "hören"}, {"en": "colour", "de": "die Farbe"}, {"en": "is", "de": "ist"}, {"en": "your", "de": "dein(e); euer/eure"}, {"en": "favourite", "de": "Lieblings-"}, {"en": "my", "de": "mein(e)"}, {"en": "game", "de": "das Spiel"}, {"en": "I spy with my little eye ...", "de": "Ich sehe was, was du nicht siehst ..."}, {"en": "something", "de": "etwas"}, {"en": "the", "de": "der / die / das"}, {"en": "dog", "de": "der Hund"}, {"en": "yes", "de": "ja"}, {"en": "kid", "de": "das Kind"}, {"en": "My name is ...", "de": "Ich heiße ..."}, {"en": "I'm (= I am)", "de": "ich bin / ich heiße"}, {"en": "hi", "de": "hi / hallo"}, {"en": "hello", "de": "hallo"}, {"en": "we", "de": "wir"}, {"en": "we're (= we are)", "de": "wir sind"}, {"en": "from", "de": "von / aus"}, {"en": "in", "de": "in"}, {"en": "too", "de": "auch"}, {"en": "but", "de": "aber"}, {"en": "to live", "de": "leben / wohnen"}, {"en": "now", "de": "jetzt"}, {"en": "number", "de": "die Zahl / die Ziffer / die Nummer"}, {"en": "what's (= what is)", "de": "was ist / wie lautet"}, {"en": "phone", "de": "das Telefon"}, {"en": "and", "de": "und"}, {"en": "mobile phone", "de": "das Mobiltelefon / Handy"}, {"en": "It's (= It is)", "de": "es ist"}, {"en": "to say", "de": "sagen"}, {"en": "red", "de": "rot"}, {"en": "orange", "de": "orange"}, {"en": "yellow", "de": "gelb"}, {"en": "green", "de": "grün"}, {"en": "blue", "de": "blau"}, {"en": "purple", "de": "lila"}, {"en": "pink", "de": "pink / rosa"}, {"en": "brown", "de": "braun"}, {"en": "white", "de": "weiß"}, {"en": "grey", "de": "grau"}, {"en": "black", "de": "schwarz"}, {"en": "one", "de": "eins"}, {"en": "two", "de": "zwei"}, {"en": "three", "de": "drei"}, {"en": "four", "de": "vier"}, {"en": "five", "de": "fünf"}, {"en": "six", "de": "sechs"}, {"en": "seven", "de": "sieben"}, {"en": "eight", "de": "acht"}, {"en": "nine", "de": "neun"}, {"en": "ten", "de": "zehn"}, {"en": "eleven", "de": "elf"}, {"en": "twelve", "de": "zwölf"}, {"en": "What's your name?", "de": "Wie heißt du?"}, {"en": "How old are you?", "de": "Wie alt bist du?"}, {"en": "I'm eleven.", "de": "Ich bin elf."}, {"en": "Where are you from?", "de": "Wo kommst du her?"}, {"en": "I'm from ...", "de": "Ich komme aus ..."}, {"en": "What's your favourite colour?", "de": "Was ist deine Lieblingsfarbe?"}, {"en": "My favourite colour is ...", "de": "Meine Lieblingsfarbe ist ..."}, {"en": "What's your mobile phone number?", "de": "Wie lautet deine Handynummer?"}];
-let pool=[], queue=[], current=[], leftSel=null, rightSel=null, correct=0, attempts=0, wrongSet=new Set(), currentMistakesOnly=false;
-const key="vocabDrillStatsV1", setKey="vocabDrillSettingsV1";
-let learned=JSON.parse(localStorage.getItem(key)||"{}");
-function shuffle(a){a=[...a];for(let i=a.length-1;i>0;i--){let j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
-function id(p){return p.en+"|||"+p.de}
-function saveSettings(){localStorage.setItem(setKey,JSON.stringify({n:+roundSize.value,repeat:repeatWrong.checked}))}
-function loadSettings(){let s=JSON.parse(localStorage.getItem(setKey)||"{}");if(s.n)roundSize.value=s.n;if(s.repeat===false)repeatWrong.checked=false}
-function restart(mistakesOnly){
- currentMistakesOnly=mistakesOnly;
- let mistakes=VOCAB.filter(p=>(learned[id(p)]?.wrong||0)>0 && (learned[id(p)]?.wrong||0)>(learned[id(p)]?.right||0)/2);
- pool=(mistakesOnly&&mistakes.length)?mistakes:VOCAB;
- modeLabel.textContent=mistakesOnly&&mistakes.length?"Fehler":"Alle";
- queue=shuffle(pool); wrongSet=new Set(); correct=0; attempts=0; resultPanel.classList.add("hidden"); nextRound();
-}
-function nextRound(){
- let n=+roundSize.value; current=queue.splice(0,n);
- if(!current.length){
-   if(repeatWrong.checked && wrongSet.size){queue=shuffle(VOCAB.filter(p=>wrongSet.has(id(p))));wrongSet.clear();nextRound();return}
-   finish();return;
- }
- render();
-}
-function render(){
- left.innerHTML="";right.innerHTML="";leftSel=rightSel=null;
- let L=shuffle(current),R=shuffle(current);
- L.forEach(p=>left.appendChild(card(p.en,p,"L")));
- R.forEach(p=>right.appendChild(card(p.de,p,"R")));
- update();
-}
-function card(txt,p,side){let b=document.createElement("button");b.className="card";b.textContent=txt;b.dataset.id=id(p);b.onclick=()=>select(b,side);return b}
-function select(el,side){
- if(el.classList.contains("done"))return;
- if(side==="L"){document.querySelectorAll("#left .card").forEach(x=>x.classList.remove("sel"));leftSel=el}
- else{document.querySelectorAll("#right .card").forEach(x=>x.classList.remove("sel"));rightSel=el}
- el.classList.add("sel"); if(leftSel&&rightSel)check();
-}
-function check(){
- attempts++; let ok=leftSel.dataset.id===rightSel.dataset.id, k=leftSel.dataset.id;
- if(ok){
-   correct++; learned[k]=learned[k]||{right:0,wrong:0};learned[k].right++;
-   let a=leftSel,b=rightSel;a.classList.remove("sel");b.classList.remove("sel");a.classList.add("done");b.classList.add("done");
-   leftSel=rightSel=null;localStorage.setItem(key,JSON.stringify(learned));update();
-   if([...document.querySelectorAll(".card")].every(x=>x.classList.contains("done")))setTimeout(nextRound,250);
- }else{
-   [leftSel,rightSel].forEach(x=>{x.classList.remove("sel");x.classList.add("bad");setTimeout(()=>x.classList.remove("bad"),450)});
-   let actual=current.find(p=>id(p)===leftSel.dataset.id); wrongSet.add(id(actual));
-   learned[id(actual)]=learned[id(actual)]||{right:0,wrong:0};learned[id(actual)].wrong++;
-   localStorage.setItem(key,JSON.stringify(learned));leftSel=rightSel=null;update();
- }
-}
-function update(){
- let done=pool.length-queue.length-current.filter(p=>{let e=[...document.querySelectorAll(".card")].find(x=>x.dataset.id===id(p));return e&&!e.classList.contains("done")}).length;
- done=Math.max(0,Math.min(pool.length,done));
- progressText.textContent=`${done} / ${pool.length} Paare`;
- stats.textContent=`✓ ${correct} · Versuche ${attempts}`;
- bar.style.width=(pool.length?done/pool.length*100:0)+"%";
-}
-function finish(){
- left.innerHTML="";right.innerHTML="";bar.style.width="100%";progressText.textContent=`${pool.length} / ${pool.length} Paare`;
- resultPanel.classList.remove("hidden");let accuracy=attempts?Math.round(correct/attempts*100):100;
- result.textContent="Geschafft! 🎉";resultSub.textContent=`${correct} richtige Zuordnungen · Trefferquote ${accuracy} %`;
-}
-loadSettings();restart(false);
+const K='vocabtrainer-v1';let D=JSON.parse(localStorage.getItem(K)||'null')||{profiles:[{id:'p1',name:'Kind',avatar:'🦊'}],active:'p1',lists:[],sessions:[],sound:true,vibrate:true};let editId=null,currentId=null,queue=[],current=null,lastMode='speak',started=0;
+function save(){D.sound=sound?.checked??D.sound;D.vibrate=vibrate?.checked??D.vibrate;localStorage.setItem(K,JSON.stringify(D))}
+function show(id){['home','editor','modes','quiz','finish','stats','settings'].forEach(x=>document.getElementById(x).classList.toggle('hidden',x!==id));if(id==='home')renderHome();if(id==='settings'){sound.checked=D.sound;vibrate.checked=D.vibrate}}
+function renderHome(){profiles.innerHTML=D.profiles.map(p=>`<button onclick="D.active='${p.id}';save();renderHome()" class="${D.active===p.id?'primary':''}">${p.avatar} ${esc(p.name)}</button>`).join('');lists.innerHTML=D.lists.length?D.lists.map(l=>`<div class=item><span onclick="openList('${l.id}')"><b>${esc(l.title)}</b><br><span class=muted>${l.words.length} Vokabeln</span></span><span><button onclick="editList('${l.id}')">✏️</button><button class=danger onclick="delList('${l.id}')">🗑</button></span></div>`).join(''):'<span class=muted>Noch keine Liste.</span>'}
+function esc(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
+function addProfile(){let n=prompt('Name des Profils:');if(n){let av=['🦊','🐼','🦁','🐸','🐧'][D.profiles.length%5];let id='p'+Date.now();D.profiles.push({id,name:n,avatar:av});D.active=id;save();renderHome()}}
+function newList(){editId=null;title.value='';lang.value='en-US';case.checked=false;accent.checked=true;window.tmp=[];renderWords();show('editor')}
+function editList(id){let l=D.lists.find(x=>x.id===id);editId=id;title.value=l.title;lang.value=l.lang;case.checked=l.case;accent.checked=l.accent;window.tmp=JSON.parse(JSON.stringify(l.words));renderWords();show('editor')}
+function addWord(){if(!foreign.value.trim()||!german.value.trim())return;tmp.push({f:foreign.value.trim(),g:german.value.split('|').map(x=>x.trim()).filter(Boolean)});foreign.value=german.value='';renderWords()}
+function bulkAdd(){bulk.value.split(/\n/).forEach(line=>{let m=line.split(/\s*(?:=|\t|;)\s*/);if(m.length>=2)tmp.push({f:m[0].trim(),g:m.slice(1).join(';').split('|').map(x=>x.trim()).filter(Boolean)})});bulk.value='';renderWords()}
+function renderWords(){words.innerHTML=(tmp||[]).map((w,i)=>`<div class=item><span><b>${esc(w.f)}</b><br>${w.g.map(esc).join(' / ')}</span><button class=danger onclick="tmp.splice(${i},1);renderWords()">×</button></div>`).join('')}
+function saveList(){if(!title.value.trim()||!tmp.length)return alert('Bitte Titel und mindestens eine Vokabel eingeben.');let l={id:editId||'l'+Date.now(),title:title.value.trim(),lang:lang.value,case:case.checked,accent:accent.checked,words:tmp};if(editId)D.lists[D.lists.findIndex(x=>x.id===editId)]=l;else D.lists.push(l);save();show('home')}
+function delList(id){if(confirm('Diese Vokabelliste wirklich löschen?')){D.lists=D.lists.filter(x=>x.id!==id);save();renderHome()}}
+function openList(id){currentId=id;modeTitle.textContent=D.lists.find(x=>x.id===id).title;show('modes')}function editCurrent(){editList(currentId)}
+function norm(s,l){s=s.trim();if(!l.case)s=s.toLowerCase();if(!l.accent)s=s.normalize('NFD').replace(/[\u0300-\u036f]/g,'');return s.replace(/[.!?]+$/,'').trim()}
+function start(mode){lastMode=mode;let l=D.lists.find(x=>x.id===currentId);queue=[...l.words].sort(()=>Math.random()-.5).map(w=>({...w}));started=Date.now();show('quiz');speakUI.classList.toggle('hidden',mode!=='speak');writeUI.classList.toggle('hidden',mode!=='write');next()}
+function next(){if(!queue.length)return complete();current=queue.shift();let l=D.lists.find(x=>x.id===currentId);prompt.textContent=lastMode==='speak'?current.f:current.g[0];feedback.classList.add('hidden');heard.textContent='';answer.value='';qcount.textContent=`Noch ${queue.length+1} Vokabel${queue.length?'n':''}`;bar.style.width=((l.words.length-queue.length-1)/l.words.length*100)+'%';if(lastMode==='write')setTimeout(()=>answer.focus(),100)}
+function verdict(ok,msg){feedback.className='card center '+(ok?'ok':'bad');feedback.textContent=msg;feedback.classList.remove('hidden');tone(ok);if(!ok)queue.push(current);setTimeout(next,700)}
+function checkWrite(){let l=D.lists.find(x=>x.id===currentId);verdict(norm(answer.value,l)===norm(current.f,l),norm(answer.value,l)===norm(current.f,l)?'✓ Richtig!':'✗ Noch einmal')}
+function listen(){let SR=window.SpeechRecognition||window.webkitSpeechRecognition;if(!SR)return alert('Die Spracherkennung wird von diesem Browser nicht unterstützt. Bitte die aktuelle Safari-Version verwenden.');let r=new SR();r.lang='de-DE';r.interimResults=false;r.onresult=e=>{let t=e.results[0][0].transcript;heard.textContent='Erkannt: '+t;let l=D.lists.find(x=>x.id===currentId),ok=current.g.some(g=>norm(g,l)===norm(t,l));setTimeout(()=>verdict(ok,ok?'✓ Richtig!':'✗ Noch einmal'),250)};r.onerror=()=>heard.textContent='Nicht verstanden – bitte erneut versuchen.';r.start()}
+function tone(ok){if(!D.sound)return;try{let a=new (AudioContext||webkitAudioContext)(),o=a.createOscillator(),g=a.createGain();o.frequency.value=ok?660:220;o.connect(g);g.connect(a.destination);g.gain.value=.04;o.start();o.stop(a.currentTime+.12)}catch(e){}}
+function complete(){let sec=Math.round((Date.now()-started)/1000);D.sessions.push({p:D.active,l:currentId,mode:lastMode,sec,date:new Date().toISOString()});save();if(D.vibrate&&navigator.vibrate)navigator.vibrate([80,40,80]);show('finish');finishInfo.textContent=`Zeit: ${Math.floor(sec/60)}:${String(sec%60).padStart(2,'0')} Minuten`;fire.innerHTML='';for(let i=0;i<55;i++){let s=document.createElement('span');s.className='conf';s.textContent=['✨','⭐','🎉','●'][i%4];s.style.left=Math.random()*100+'%';s.style.animationDelay=Math.random()*.5+'s';fire.appendChild(s)}setTimeout(()=>fire.innerHTML='',2600)}
+function endQuiz(){show('modes')}
+function showStats(){show('stats');let ss=D.sessions.filter(s=>s.p===D.active),tot=ss.reduce((a,s)=>a+s.sec,0),today=new Date().toISOString().slice(0,10),td=ss.filter(s=>s.date.slice(0,10)===today).reduce((a,s)=>a+s.sec,0);statbody.innerHTML=`<div class=big>${Math.round(td/60)} Min. heute</div><p>Gesamt: <b>${Math.round(tot/60)} Minuten</b></p><p>Abgeschlossene Übungen: <b>${ss.length}</b></p>`}
+function exportData(){let b=new Blob([JSON.stringify(D,null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='Vokabeltrainer-Backup.json';a.click()}
+function importData(el){let f=el.files[0];if(!f)return;let r=new FileReader();r.onload=()=>{try{D=JSON.parse(r.result);save();show('home')}catch(e){alert('Backup konnte nicht gelesen werden.')}};r.readAsText(f)}
+function dictateGerman(){let SR=window.SpeechRecognition||window.webkitSpeechRecognition;if(!SR)return alert('Spracherkennung hier nicht verfügbar.');let r=new SR();r.lang='de-DE';r.onresult=e=>german.value=e.results[0][0].transcript;r.start()}
+function photoHint(){alert('Foto wurde ausgewählt. Vollautomatische OCR ist in dieser rein lokalen GitHub-Pages-Version noch nicht zuverlässig genug. Nutze vorerst Masseneingabe oder die iOS-Texterkennung zum Kopieren des Textes; die Importmaske bleibt für die spätere OCR-Erweiterung vorbereitet.')}
+show('home');
 </script></body></html>
