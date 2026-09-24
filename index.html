@@ -87,7 +87,16 @@ function importData(el){let f=el.files[0];if(!f)return;let r=new FileReader();r.
 function dictateGerman(){
  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;if(!SR)return alert('Spracherkennung wird von diesem Browser nicht unterstützt.');
  clearSpeech();const btn=el('dictateBtn'),st=el('dictateStatus');btn.disabled=true;st.textContent='🎙 Ich höre zu …';const r=new SR();activeRecognition=r;r.lang='de-DE';r.interimResults=false;r.maxAlternatives=1;let got=false;
- r.onresult=e=>{got=true;const t=e.results[0][0].transcript;el('german').value=t;st.textContent='Erkannt: '+t};
+ r.onresult=e=>{
+  got=true;
+  let t=e.results[0][0].transcript.trim();
+  const lowerFirstWords=new Set(['Die','Der','Das','Den','Dem','Des','Ein','Eine','Einen','Einem','Einer','Eines','Mein','Meine','Meinen','Meinem','Meiner','Meines','Dein','Deine','Deinen','Deinem','Deiner','Deines','Sein','Seine','Ihr','Ihre','Unser','Unsere','Euer','Eure','Kein','Keine','Dieser','Diese','Dieses','Jener','Jene','Jenes']);
+  const m=t.match(/^([^\s]+)(.*)$/);
+  if(m&&lowerFirstWords.has(m[1]))t=m[1].charAt(0).toLowerCase()+m[1].slice(1)+m[2];
+  const old=el('german').value.trim();
+  el('german').value=old?old+' | '+t:t;
+  st.textContent='Erkannt: '+t;
+};
  r.onerror=e=>st.textContent=speechErrorText(e.error);
  r.onend=()=>{if(speechTimer){clearTimeout(speechTimer);speechTimer=null}activeRecognition=null;btn.disabled=false;if(!got&&st.textContent==='🎙 Ich höre zu …')st.textContent='Nichts verstanden – bitte erneut versuchen.'};
  speechTimer=setTimeout(()=>{if(activeRecognition===r){st.textContent='Zeit abgelaufen – bitte erneut versuchen.';try{r.abort()}catch(e){}}},8000);
