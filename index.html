@@ -13,6 +13,7 @@ input,select,textarea{width:100%;border:2px solid #dbe8f2;border-radius:13px;pad
 .progress{height:10px;background:#dcebf5;border-radius:8px;overflow:hidden}.bar{height:100%;background:#39b54a}
 .ok{background:#dcf6df}.bad{background:#ffe2e2}.muted{color:#698096;font-size:13px}.center{text-align:center}
 .fire{position:fixed;inset:0;pointer-events:none;overflow:hidden}.conf{position:absolute;font-size:28px;animation:fall 2.2s linear forwards}@keyframes fall{from{transform:translateY(-10vh) rotate(0)}to{transform:translateY(110vh) rotate(720deg)}}
+#importCard h2{font-size:21px;margin-top:0}.import-pair{background:#f4f9ff;border:1px solid #dbe8f2;border-radius:15px;padding:12px}.import-fields{display:grid;grid-template-columns:1fr 1fr;gap:10px}.import-pair input{min-width:0;font-size:16px}.import-note{font-size:13px;color:#805900;margin:8px 0}.import-pair button{min-height:44px}#bulk{font-size:16px}button:disabled{opacity:.5;cursor:default}@media(max-width:560px){.import-fields{grid-template-columns:1fr}}
 </style></head><body>
 <div class="top"><h1>📚 Vokabeltrainer</h1><button onclick="show('settings')">⚙️</button></div>
 <div id="home">
@@ -24,8 +25,16 @@ input,select,textarea{width:100%;border:2px solid #dbe8f2;border-radius:13px;pad
 <button onclick="show('home')">‹ Zurück</button><div class="card"><label>Titel</label><input id="title"><label>Fremdsprache</label><select id="lang"><option value="en-US">Englisch</option><option value="fr-FR">Französisch</option><option value="es-ES">Spanisch</option><option value="it-IT">Italienisch</option><option value="pt-PT">Portugiesisch</option><option value="nl-NL">Niederländisch</option></select>
 <div class="row"><label><input type="checkbox" id="case" style="width:auto"> Groß-/Kleinschreibung beachten</label><label><input type="checkbox" id="accent" style="width:auto" checked> Akzente beachten</label></div></div>
 <div class="card"><b>Vokabel hinzufügen</b><label>Fremdsprache</label><input id="foreign" autocapitalize="none" autocorrect="off" spellcheck="false"><label>Deutsch – mehrere Lösungen mit | trennen</label><input id="german" autocapitalize="none"><div class="row"><button onclick="addWord()">＋ Hinzufügen</button><button id="dictateBtn" type="button" onclick="dictateGerman()">🎙 Deutsch diktieren</button></div><div id="dictateStatus" class="muted" aria-live="polite"></div></div>
-<div class="card"><b>Masseneingabe</b><div class="muted">Eine Zeile je Paar, z. B. kitchen = Küche | die Küche</div><textarea id="bulk" rows="5" autocapitalize="none" autocorrect="off" spellcheck="false"></textarea><button onclick="bulkAdd()">Übernehmen</button>
-<label style="margin-top:12px;display:block">Foto auswählen (Texterkennung hängt von Browser/iOS ab)</label><input type="file" accept="image/*" capture="environment" onchange="photoHint()"></div>
+<div class="card" id="importCard"><h2>Text scannen &amp; importieren</h2>
+<p class="muted" id="scanHelp">Tippe in das Textfeld und halte es gedrückt. Wähle auf unterstützten iPhones/iPads „Text scannen“ (gegebenenfalls unter „Automatisch ausfüllen“). Alternativ: In Fotos mit Live Text den Text markieren, kopieren und hier einsetzen. Die Kamera wird über das iOS-Menü geöffnet; diese App erkennt Fotos nicht selbst.</p>
+<label for="bulk">1. Gescannter Text / Masseneingabe</label>
+<textarea id="bulk" rows="7" autocapitalize="none" autocorrect="off" spellcheck="false" aria-describedby="scanHelp" placeholder="kitchen = Küche | die Küche&#10;people = Leute | die Leute" oninput="invalidateImport()"></textarea>
+<label for="importLayout">Anordnung des Textes</label><select id="importLayout" onchange="invalidateImport()"><option value="auto">Automatisch: ein Paar je Zeile</option><option value="alternating">Abwechselnde Zeilen: Fremdsprache, Deutsch</option><option value="columns">Zwei Blöcke: erst alle fremden, dann alle deutschen Wörter</option></select>
+<p class="muted">Automatisch erkannt: =, Tabulator, Semikolon, Doppelpunkt, Gedankenstrich oder mehrere Leerzeichen zwischen den Spalten. Einfache Leerzeichen und | bleiben innerhalb einer Antwort erhalten. Bei kopierten Spalten die passende Anordnung wählen.</p>
+<label><input id="importReverse" type="checkbox" style="width:auto" onchange="invalidateImport()"> Deutsch steht zuerst</label>
+<div class="row" style="margin-top:12px"><button class="primary" type="button" onclick="bulkAdd()">2. Vorschau erstellen</button><button type="button" onclick="resetImport()">Import verwerfen</button></div>
+<div id="importStatus" role="status" aria-live="polite" style="margin:12px 0"></div>
+<div id="importPreview" class="hidden"><h3>3. Paare prüfen und korrigieren</h3><p class="muted">Bitte Zuordnung und Texterkennung prüfen. Fehlende Übersetzungen ergänzen oder die Zeile löschen. Mehrere deutsche Lösungen mit | trennen.</p><div id="importRows" class="list"></div><button type="button" onclick="addImportRow()">＋ Paar ergänzen</button><p id="importValidation" role="status"></p><button id="importCommit" class="green" type="button" onclick="commitImport()">Geprüfte Paare in die Liste übernehmen</button><p class="muted">Die Übernahme ergänzt die geöffnete Liste. Dauerhaft sichern mit „Liste speichern“.</p></div></div>
 <div class="card"><b>Vokabeln</b><div id="words" class="list"></div></div><button class="green" onclick="saveList()">Liste speichern</button></div>
 
 <div id="modes" class="hidden"><button onclick="show('home')">‹ Zurück</button><h2 id="modeTitle"></h2>
@@ -53,10 +62,66 @@ function renderHome(){
 function selectProfile(id){D.active=id;save();renderHome()}
 function esc(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
 function addProfile(){let n=prompt('Name des Profils:');if(n){let av=['🦊','🐼','🦁','🐸','🐧'][D.profiles.length%5];let id='p'+Date.now();D.profiles.push({id,name:n,avatar:av});D.active=id;save();renderHome()}}
-function newList(){editId=null;el('title').value='';el('lang').value='en-US';document.getElementById('case').checked=false;accent.checked=true;window.tmp=[];renderWords();show('editor')}
-function editList(id){let l=D.lists.find(x=>x.id===id);editId=id;el('title').value=l.title;el('lang').value=l.lang;document.getElementById('case').checked=l.case;accent.checked=l.accent;window.tmp=JSON.parse(JSON.stringify(l.words));renderWords();show('editor')}
+function newList(){resetImport();editId=null;el('title').value='';el('lang').value='en-US';document.getElementById('case').checked=false;accent.checked=true;window.tmp=[];renderWords();show('editor')}
+function editList(id){resetImport();let l=D.lists.find(x=>x.id===id);editId=id;el('title').value=l.title;el('lang').value=l.lang;document.getElementById('case').checked=l.case;accent.checked=l.accent;window.tmp=JSON.parse(JSON.stringify(l.words));renderWords();show('editor')}
 function addWord(){if(!el('foreign').value.trim()||!el('german').value.trim())return;tmp.push({f:el('foreign').value.trim(),g:el('german').value.split('|').map(x=>x.trim()).filter(Boolean)});el('foreign').value=el('german').value='';renderWords()}
-function bulkAdd(){el('bulk').value.split(/\n/).forEach(line=>{let m=line.split(/\s*(?:=|\t|;)\s*/);if(m.length>=2)tmp.push({f:m[0].trim(),g:m.slice(1).join(';').split('|').map(x=>x.trim()).filter(Boolean)})});el('bulk').value='';renderWords()}
+let importDraft=[];
+function parseImport(text,layout='auto',reverse=false){
+ const lines=text.replace(/\r\n?/g,'\n').split('\n').map((text,i)=>({text:text.trim(),line:i+1})).filter(x=>x.text);
+ const rows=[];
+ function pair(a,b,note){rows.push({f:reverse?b:a,g:reverse?a:b,note:note||''})}
+ if(layout==='columns'){
+  if(lines.length%2)return {rows:[],error:'Für zwei Blöcke wird eine gerade Anzahl nichtleerer Zeilen benötigt. Bitte fehlende Zeilen ergänzen oder eine andere Anordnung wählen.'};
+  const half=lines.length/2;for(let i=0;i<half;i++)pair(lines[i].text,lines[i+half].text,'Aus zwei Blöcken zugeordnet – bitte prüfen.');
+ }else if(layout==='alternating'){
+  for(let i=0;i<lines.length;i+=2)pair(lines[i].text,lines[i+1]?.text||'','Aus aufeinanderfolgenden Zeilen zugeordnet – bitte prüfen.');
+ }else{
+  for(const line of lines){
+   const raw=line.text;
+   // Only explicit separators; never guess a split inside a phrase or a | alternative.
+   const m=/\s*(?:=|\t+|;)\s*/.exec(raw)||/\s*(?:→|↔|⇒)\s*|\s+[–—-]\s+|:\s+| {2,}/.exec(raw);
+   if(m)pair(raw.slice(0,m.index).trim(),raw.slice(m.index+m[0].length).trim(),'Zeile '+line.line+' – Zuordnung prüfen.');
+   else pair(raw,'','Zeile '+line.line+': Kein Trennzeichen erkannt. Bitte ergänzen oder löschen.');
+  }
+ }
+ return {rows,error:''};
+}
+function invalidateImport(){
+ importDraft=[];el('importPreview').classList.add('hidden');el('importRows').replaceChildren();
+ el('importStatus').textContent='Text oder Anordnung geändert. Bitte Vorschau neu erstellen.';
+}
+function resetImport(){
+ importDraft=[];el('bulk').value='';el('importLayout').value='auto';el('importReverse').checked=false;
+ el('importPreview').classList.add('hidden');el('importRows').replaceChildren();el('importStatus').textContent='';el('importValidation').textContent='';
+}
+function bulkAdd(){
+ const result=parseImport(el('bulk').value,el('importLayout').value,el('importReverse').checked);
+ importDraft=result.rows;
+ el('importStatus').textContent=result.error||(importDraft.length?importDraft.length+' Paare zur Prüfung. Noch nichts übernommen.':'Bitte zuerst Text scannen oder einsetzen.');
+ renderImport();
+}
+function renderImport(){
+ el('importPreview').classList.toggle('hidden',!importDraft.length);
+ el('importRows').innerHTML=importDraft.map((r,i)=>`<div class="import-pair"><div class="row"><b>Paar ${i+1}</b><button type="button" class="danger" aria-label="Paar ${i+1} löschen" onclick="removeImportRow(${i})">× Löschen</button></div><p class="import-note">${esc(r.note)}</p><div class="import-fields"><div><label for="imp-f-${i}">Fremdsprache</label><input id="imp-f-${i}" value="${esc(r.f)}" autocapitalize="none" autocorrect="off" spellcheck="false" oninput="updateImportRow(${i},'f',this.value)"></div><div><label for="imp-g-${i}">Deutsch (Lösungen mit |)</label><input id="imp-g-${i}" value="${esc(r.g)}" lang="de" autocapitalize="none" oninput="updateImportRow(${i},'g',this.value)"></div></div></div>`).join('');
+ validateImport();
+}
+function updateImportRow(i,key,value){importDraft[i][key]=value;validateImport()}
+function removeImportRow(i){importDraft.splice(i,1);renderImport();if(!importDraft.length)el('importStatus').textContent='Alle Vorschau-Paare gelöscht. Es wurde nichts übernommen.'}
+function addImportRow(){importDraft.push({f:'',g:'',note:'Manuell ergänzt.'});renderImport();el('imp-f-'+(importDraft.length-1)).focus()}
+function importWords(){return importDraft.map(r=>({f:r.f.trim(),g:r.g.split('|').map(x=>x.trim()).filter(Boolean)}))}
+function validateImport(){
+ const words=importWords(),invalid=words.filter(w=>!w.f||!w.g.length).length;
+ el('importCommit').disabled=!words.length||invalid>0;
+ el('importValidation').textContent=invalid?invalid+' unvollständige Paare: bitte beide Seiten ausfüllen oder löschen.':words.length+' vollständige Paare bereit zur Übernahme.';
+ return words.length>0&&!invalid;
+}
+function commitImport(){
+ if(!validateImport())return;
+ const words=importWords();
+ // Same schema and editor buffer as manually entered vocabulary; no persistence before Save.
+ window.tmp.push(...words);renderWords();resetImport();
+ el('importStatus').textContent=words.length+' Paare übernommen. Zum dauerhaften Sichern „Liste speichern“ wählen.';
+}
 function renderWords(){el('words').innerHTML=(tmp||[]).map((w,i)=>`<div class=item><span><b>${esc(w.f)}</b><br>${w.g.map(esc).join(' / ')}</span><button class=danger onclick="tmp.splice(${i},1);renderWords()">×</button></div>`).join('')}
 function saveList(){if(!el('title').value.trim()||!tmp.length)return alert('Bitte Titel und mindestens eine Vokabel eingeben.');let l={id:editId||'l'+Date.now(),title:el('title').value.trim(),lang:el('lang').value,case:document.getElementById('case').checked,accent:accent.checked,words:tmp};if(editId)D.lists[D.lists.findIndex(x=>x.id===editId)]=l;else D.lists.push(l);save();show('home')}
 function delList(id){if(confirm('Diese Vokabelliste wirklich löschen?')){D.lists=D.lists.filter(x=>x.id!==id);save();renderHome()}}
@@ -102,6 +167,5 @@ function dictateGerman(){
  speechTimer=setTimeout(()=>{if(activeRecognition===r){st.textContent='Zeit abgelaufen – bitte erneut versuchen.';try{r.abort()}catch(e){}}},8000);
  try{r.start()}catch(e){st.textContent='Spracherkennung konnte nicht gestartet werden.';btn.disabled=false;clearSpeech()}
 }
-function photoHint(){alert('Foto wurde ausgewählt. Vollautomatische OCR ist in dieser rein lokalen GitHub-Pages-Version noch nicht zuverlässig genug. Nutze vorerst Masseneingabe oder die iOS-Texterkennung zum Kopieren des Textes; die Importmaske bleibt für die spätere OCR-Erweiterung vorbereitet.')}
 show('home');
 </script></body></html>
