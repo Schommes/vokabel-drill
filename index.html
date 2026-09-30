@@ -13,7 +13,6 @@ input,select,textarea{width:100%;border:2px solid #dbe8f2;border-radius:13px;pad
 .progress{height:10px;background:#dcebf5;border-radius:8px;overflow:hidden}.bar{height:100%;background:#39b54a}
 .ok{background:#dcf6df}.bad{background:#ffe2e2}.muted{color:#698096;font-size:13px}.center{text-align:center}
 .fire{position:fixed;inset:0;pointer-events:none;overflow:hidden}.conf{position:absolute;font-size:28px;animation:fall 2.2s linear forwards}@keyframes fall{from{transform:translateY(-10vh) rotate(0)}to{transform:translateY(110vh) rotate(720deg)}}
-#importCard h2{font-size:21px;margin-top:0}.import-pair{background:#f4f9ff;border:1px solid #dbe8f2;border-radius:15px;padding:12px}.import-fields{display:grid;grid-template-columns:1fr 1fr;gap:10px}.import-pair input{min-width:0;font-size:16px}.import-note{font-size:13px;color:#805900;margin:8px 0}.import-pair button{min-height:44px}#bulk{font-size:16px}button:disabled{opacity:.5;cursor:default}@media(max-width:560px){.import-fields{grid-template-columns:1fr}}
 </style></head><body>
 <div class="top"><h1>📚 Vokabeltrainer</h1><button onclick="show('settings')">⚙️</button></div>
 <div id="home">
@@ -25,23 +24,15 @@ input,select,textarea{width:100%;border:2px solid #dbe8f2;border-radius:13px;pad
 <button onclick="show('home')">‹ Zurück</button><div class="card"><label>Titel</label><input id="title"><label>Fremdsprache</label><select id="lang"><option value="en-US">Englisch</option><option value="fr-FR">Französisch</option><option value="es-ES">Spanisch</option><option value="it-IT">Italienisch</option><option value="pt-PT">Portugiesisch</option><option value="nl-NL">Niederländisch</option></select>
 <div class="row"><label><input type="checkbox" id="case" style="width:auto"> Groß-/Kleinschreibung beachten</label><label><input type="checkbox" id="accent" style="width:auto" checked> Akzente beachten</label></div></div>
 <div class="card"><b>Vokabel hinzufügen</b><label>Fremdsprache</label><input id="foreign" autocapitalize="none" autocorrect="off" spellcheck="false"><label>Deutsch – mehrere Lösungen mit | trennen</label><input id="german" autocapitalize="none"><div class="row"><button onclick="addWord()">＋ Hinzufügen</button><button id="dictateBtn" type="button" onclick="dictateGerman()">🎙 Deutsch diktieren</button></div><div id="dictateStatus" class="muted" aria-live="polite"></div></div>
-<div class="card" id="importCard"><h2>Text scannen &amp; importieren</h2>
-<p class="muted" id="scanHelp">Tippe in das Textfeld und halte es gedrückt. Wähle auf unterstützten iPhones/iPads „Text scannen“ (gegebenenfalls unter „Automatisch ausfüllen“). Alternativ: In Fotos mit Live Text den Text markieren, kopieren und hier einsetzen. Die Kamera wird über das iOS-Menü geöffnet; diese App erkennt Fotos nicht selbst.</p>
-<label for="bulk">1. Gescannter Text / Masseneingabe</label>
-<textarea id="bulk" rows="7" autocapitalize="none" autocorrect="off" spellcheck="false" aria-describedby="scanHelp" placeholder="kitchen = Küche | die Küche&#10;people = Leute | die Leute" oninput="invalidateImport()"></textarea>
-<label for="importLayout">Anordnung des Textes</label><select id="importLayout" onchange="invalidateImport()"><option value="auto">Automatisch: ein Paar je Zeile</option><option value="alternating">Abwechselnde Zeilen: Fremdsprache, Deutsch</option><option value="columns">Zwei Blöcke: erst alle fremden, dann alle deutschen Wörter</option></select>
-<p class="muted">Automatisch erkannt: =, Tabulator, Semikolon, Doppelpunkt, Gedankenstrich oder mehrere Leerzeichen zwischen den Spalten. Einfache Leerzeichen und | bleiben innerhalb einer Antwort erhalten. Bei kopierten Spalten die passende Anordnung wählen.</p>
-<label><input id="importReverse" type="checkbox" style="width:auto" onchange="invalidateImport()"> Deutsch steht zuerst</label>
-<div class="row" style="margin-top:12px"><button class="primary" type="button" onclick="bulkAdd()">2. Vorschau erstellen</button><button type="button" onclick="resetImport()">Import verwerfen</button></div>
-<div id="importStatus" role="status" aria-live="polite" style="margin:12px 0"></div>
-<div id="importPreview" class="hidden"><h3>3. Paare prüfen und korrigieren</h3><p class="muted">Bitte Zuordnung und Texterkennung prüfen. Fehlende Übersetzungen ergänzen oder die Zeile löschen. Mehrere deutsche Lösungen mit | trennen.</p><div id="importRows" class="list"></div><button type="button" onclick="addImportRow()">＋ Paar ergänzen</button><p id="importValidation" role="status"></p><button id="importCommit" class="green" type="button" onclick="commitImport()">Geprüfte Paare in die Liste übernehmen</button><p class="muted">Die Übernahme ergänzt die geöffnete Liste. Dauerhaft sichern mit „Liste speichern“.</p></div></div>
+<div class="card"><b>Masseneingabe</b><div class="muted">Eine Zeile je Paar, z. B. kitchen = Küche | die Küche</div><textarea id="bulk" rows="5" autocapitalize="none" autocorrect="off" spellcheck="false"></textarea><button onclick="bulkAdd()">Übernehmen</button>
+<label style="margin-top:12px;display:block">Foto auswählen (Texterkennung hängt von Browser/iOS ab)</label><input type="file" accept="image/*" capture="environment" onchange="photoHint()"></div>
 <div class="card"><b>Vokabeln</b><div id="words" class="list"></div></div><button class="green" onclick="saveList()">Liste speichern</button></div>
 
 <div id="modes" class="hidden"><button onclick="show('home')">‹ Zurück</button><h2 id="modeTitle"></h2>
 <div class="card list"><button class="primary" onclick="start('speak')">🎙 Fremdsprache → Deutsch sprechen</button><button class="primary" onclick="start('write')">⌨️ Deutsch → Fremdsprache schreiben</button><button onclick="editCurrent()">✏️ Vokabeln bearbeiten</button></div></div>
 
 <div id="quiz" class="hidden"><button onclick="endQuiz()">‹ Beenden</button><div class="progress"><div id="bar" class="bar"></div></div><div id="qcount" class="muted center"></div><div class="card big" id="prompt"></div>
-<div id="speakUI" class="card center hidden"><button class="primary" style="font-size:28px" onclick="listen()">🎙 Sprechen</button><div id="heard" class="big"></div></div>
+<div id="speakUI" class="card center hidden"><button class="primary" style="font-size:28px" id="speakBtn" type="button" onclick="listen()">🎙 Sprechen</button><div id="heard" class="big"></div></div>
 <div id="writeUI" class="card hidden"><input id="answer" autocomplete="off" autocapitalize="none" autocorrect="off" spellcheck="false" onkeydown="if(event.key==='Enter')checkWrite()"><button class="primary" onclick="checkWrite()">Prüfen</button></div>
 <div id="feedback" class="card center hidden"></div></div>
 
@@ -53,7 +44,7 @@ input,select,textarea{width:100%;border:2px solid #dbe8f2;border-radius:13px;pad
 <script>
 const K='vocabtrainer-v1';let D=JSON.parse(localStorage.getItem(K)||'null')||{profiles:[{id:'p1',name:'Kind',avatar:'🦊'}],active:'p1',lists:[],sessions:[],sound:true,vibrate:true};let editId=null,currentId=null,queue=[],current=null,lastMode='speak',started=0;
 function save(){D.sound=sound?.checked??D.sound;D.vibrate=vibrate?.checked??D.vibrate;localStorage.setItem(K,JSON.stringify(D))}
-function show(id){['home','editor','modes','quiz','finish','stats','settings'].forEach(x=>document.getElementById(x).classList.toggle('hidden',x!==id));if(id==='home')renderHome();if(id==='settings'){sound.checked=D.sound;vibrate.checked=D.vibrate}}
+function show(id){clearSpeech();cancelQuizTimers();['home','editor','modes','quiz','finish','stats','settings'].forEach(x=>document.getElementById(x).classList.toggle('hidden',x!==id));if(id==='home')renderHome();if(id==='settings'){sound.checked=D.sound;vibrate.checked=D.vibrate}}
 function el(id){return document.getElementById(id)}
 function renderHome(){
  el('profiles').innerHTML=D.profiles.map(p=>`<button type="button" onclick="selectProfile('${p.id}')" class="${D.active===p.id?'primary':''}">${p.avatar} ${esc(p.name)}</button>`).join('');
@@ -62,86 +53,70 @@ function renderHome(){
 function selectProfile(id){D.active=id;save();renderHome()}
 function esc(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
 function addProfile(){let n=prompt('Name des Profils:');if(n){let av=['🦊','🐼','🦁','🐸','🐧'][D.profiles.length%5];let id='p'+Date.now();D.profiles.push({id,name:n,avatar:av});D.active=id;save();renderHome()}}
-function newList(){resetImport();editId=null;el('title').value='';el('lang').value='en-US';document.getElementById('case').checked=false;accent.checked=true;window.tmp=[];renderWords();show('editor')}
-function editList(id){resetImport();let l=D.lists.find(x=>x.id===id);editId=id;el('title').value=l.title;el('lang').value=l.lang;document.getElementById('case').checked=l.case;accent.checked=l.accent;window.tmp=JSON.parse(JSON.stringify(l.words));renderWords();show('editor')}
+function newList(){editId=null;el('title').value='';el('lang').value='en-US';document.getElementById('case').checked=false;accent.checked=true;window.tmp=[];renderWords();show('editor')}
+function editList(id){let l=D.lists.find(x=>x.id===id);editId=id;el('title').value=l.title;el('lang').value=l.lang;document.getElementById('case').checked=l.case;accent.checked=l.accent;window.tmp=JSON.parse(JSON.stringify(l.words));renderWords();show('editor')}
 function addWord(){if(!el('foreign').value.trim()||!el('german').value.trim())return;tmp.push({f:el('foreign').value.trim(),g:el('german').value.split('|').map(x=>x.trim()).filter(Boolean)});el('foreign').value=el('german').value='';renderWords()}
-let importDraft=[];
-function parseImport(text,layout='auto',reverse=false){
- const lines=text.replace(/\r\n?/g,'\n').split('\n').map((text,i)=>({text:text.trim(),line:i+1})).filter(x=>x.text);
- const rows=[];
- function pair(a,b,note){rows.push({f:reverse?b:a,g:reverse?a:b,note:note||''})}
- if(layout==='columns'){
-  if(lines.length%2)return {rows:[],error:'Für zwei Blöcke wird eine gerade Anzahl nichtleerer Zeilen benötigt. Bitte fehlende Zeilen ergänzen oder eine andere Anordnung wählen.'};
-  const half=lines.length/2;for(let i=0;i<half;i++)pair(lines[i].text,lines[i+half].text,'Aus zwei Blöcken zugeordnet – bitte prüfen.');
- }else if(layout==='alternating'){
-  for(let i=0;i<lines.length;i+=2)pair(lines[i].text,lines[i+1]?.text||'','Aus aufeinanderfolgenden Zeilen zugeordnet – bitte prüfen.');
- }else{
-  for(const line of lines){
-   const raw=line.text;
-   // Only explicit separators; never guess a split inside a phrase or a | alternative.
-   const m=/\s*(?:=|\t+|;)\s*/.exec(raw)||/\s*(?:→|↔|⇒)\s*|\s+[–—-]\s+|:\s+| {2,}/.exec(raw);
-   if(m)pair(raw.slice(0,m.index).trim(),raw.slice(m.index+m[0].length).trim(),'Zeile '+line.line+' – Zuordnung prüfen.');
-   else pair(raw,'','Zeile '+line.line+': Kein Trennzeichen erkannt. Bitte ergänzen oder löschen.');
-  }
+function splitBulkPair(line){
+ let depth=0,preferred=-1,fallback=-1;
+ for(let i=0;i<line.length;i++){
+  const c=line[i];if(c==='('){depth++;continue}if(c===')'){depth=Math.max(0,depth-1);continue}
+  if(depth)continue;
+  if(c==='='&&/\s/.test(line[i-1]||'')&&/\s/.test(line[i+1]||'')){preferred=i;break}
+  if(fallback<0&&(c==='='||c==='\t'||c===';'))fallback=i;
  }
- return {rows,error:''};
+ const at=preferred>=0?preferred:fallback;
+ return at<0?null:[line.slice(0,at).trim(),line.slice(at+1).trim()];
 }
-function invalidateImport(){
- importDraft=[];el('importPreview').classList.add('hidden');el('importRows').replaceChildren();
- el('importStatus').textContent='Text oder Anordnung geändert. Bitte Vorschau neu erstellen.';
-}
-function resetImport(){
- importDraft=[];el('bulk').value='';el('importLayout').value='auto';el('importReverse').checked=false;
- el('importPreview').classList.add('hidden');el('importRows').replaceChildren();el('importStatus').textContent='';el('importValidation').textContent='';
-}
-function bulkAdd(){
- const result=parseImport(el('bulk').value,el('importLayout').value,el('importReverse').checked);
- importDraft=result.rows;
- el('importStatus').textContent=result.error||(importDraft.length?importDraft.length+' Paare zur Prüfung. Noch nichts übernommen.':'Bitte zuerst Text scannen oder einsetzen.');
- renderImport();
-}
-function renderImport(){
- el('importPreview').classList.toggle('hidden',!importDraft.length);
- el('importRows').innerHTML=importDraft.map((r,i)=>`<div class="import-pair"><div class="row"><b>Paar ${i+1}</b><button type="button" class="danger" aria-label="Paar ${i+1} löschen" onclick="removeImportRow(${i})">× Löschen</button></div><p class="import-note">${esc(r.note)}</p><div class="import-fields"><div><label for="imp-f-${i}">Fremdsprache</label><input id="imp-f-${i}" value="${esc(r.f)}" autocapitalize="none" autocorrect="off" spellcheck="false" oninput="updateImportRow(${i},'f',this.value)"></div><div><label for="imp-g-${i}">Deutsch (Lösungen mit |)</label><input id="imp-g-${i}" value="${esc(r.g)}" lang="de" autocapitalize="none" oninput="updateImportRow(${i},'g',this.value)"></div></div></div>`).join('');
- validateImport();
-}
-function updateImportRow(i,key,value){importDraft[i][key]=value;validateImport()}
-function removeImportRow(i){importDraft.splice(i,1);renderImport();if(!importDraft.length)el('importStatus').textContent='Alle Vorschau-Paare gelöscht. Es wurde nichts übernommen.'}
-function addImportRow(){importDraft.push({f:'',g:'',note:'Manuell ergänzt.'});renderImport();el('imp-f-'+(importDraft.length-1)).focus()}
-function importWords(){return importDraft.map(r=>({f:r.f.trim(),g:r.g.split('|').map(x=>x.trim()).filter(Boolean)}))}
-function validateImport(){
- const words=importWords(),invalid=words.filter(w=>!w.f||!w.g.length).length;
- el('importCommit').disabled=!words.length||invalid>0;
- el('importValidation').textContent=invalid?invalid+' unvollständige Paare: bitte beide Seiten ausfüllen oder löschen.':words.length+' vollständige Paare bereit zur Übernahme.';
- return words.length>0&&!invalid;
-}
-function commitImport(){
- if(!validateImport())return;
- const words=importWords();
- // Same schema and editor buffer as manually entered vocabulary; no persistence before Save.
- window.tmp.push(...words);renderWords();resetImport();
- el('importStatus').textContent=words.length+' Paare übernommen. Zum dauerhaften Sichern „Liste speichern“ wählen.';
-}
+function bulkAdd(){el('bulk').value.split(/\r?\n/).forEach(line=>{const pair=splitBulkPair(line);if(!pair)return;const g=pair[1].split('|').map(x=>x.trim()).filter(Boolean);if(pair[0]&&g.length)tmp.push({f:pair[0],g})});el('bulk').value='';renderWords()}
 function renderWords(){el('words').innerHTML=(tmp||[]).map((w,i)=>`<div class=item><span><b>${esc(w.f)}</b><br>${w.g.map(esc).join(' / ')}</span><button class=danger onclick="tmp.splice(${i},1);renderWords()">×</button></div>`).join('')}
 function saveList(){if(!el('title').value.trim()||!tmp.length)return alert('Bitte Titel und mindestens eine Vokabel eingeben.');let l={id:editId||'l'+Date.now(),title:el('title').value.trim(),lang:el('lang').value,case:document.getElementById('case').checked,accent:accent.checked,words:tmp};if(editId)D.lists[D.lists.findIndex(x=>x.id===editId)]=l;else D.lists.push(l);save();show('home')}
 function delList(id){if(confirm('Diese Vokabelliste wirklich löschen?')){D.lists=D.lists.filter(x=>x.id!==id);save();renderHome()}}
 function openList(id){currentId=id;el('modeTitle').textContent=D.lists.find(x=>x.id===id).title;show('modes')}function editCurrent(){editList(currentId)}
 function norm(s,l){s=s.trim();if(!l.case)s=s.toLowerCase();if(!l.accent)s=s.normalize('NFD').replace(/[\u0300-\u036f]/g,'');return s.replace(/[.!?]+$/,'').trim()}
 function start(mode){lastMode=mode;let l=D.lists.find(x=>x.id===currentId);queue=[...l.words].sort(()=>Math.random()-.5).map(w=>({...w}));started=Date.now();show('quiz');el('speakUI').classList.toggle('hidden',mode!=='speak');el('writeUI').classList.toggle('hidden',mode!=='write');next()}
-function next(){if(!queue.length)return complete();current=queue.shift();let l=D.lists.find(x=>x.id===currentId);document.getElementById('prompt').textContent=lastMode==='speak'?current.f:current.g[0];document.getElementById('feedback').classList.add('hidden');document.getElementById('heard').textContent='';document.getElementById('answer').value='';document.getElementById('qcount').textContent=`Noch ${queue.length+1} Vokabel${queue.length?'n':''}`;document.getElementById('bar').style.width=((l.words.length-queue.length-1)/l.words.length*100)+'%';if(lastMode==='write')setTimeout(()=>document.getElementById('answer').focus(),100)}
-function verdict(ok,msg){feedback.className='card center '+(ok?'ok':'bad');feedback.textContent=msg;feedback.classList.remove('hidden');tone(ok);if(!ok)queue.push(current);setTimeout(next,700)}
+function next(){clearSpeech();cancelQuizTimers();if(!queue.length)return complete();current=queue.shift();let l=D.lists.find(x=>x.id===currentId);document.getElementById('prompt').textContent=lastMode==='speak'?current.f:current.g[0];document.getElementById('feedback').classList.add('hidden');document.getElementById('heard').textContent='';document.getElementById('answer').value='';document.getElementById('qcount').textContent=`Noch ${queue.length+1} Vokabel${queue.length?'n':''}`;document.getElementById('bar').style.width=((l.words.length-queue.length-1)/l.words.length*100)+'%';if(lastMode==='write')setTimeout(()=>document.getElementById('answer').focus(),100)}
+function verdict(ok,msg){clearSpeech();feedback.className='card center '+(ok?'ok':'bad');feedback.textContent=msg;feedback.classList.remove('hidden');tone(ok);if(!ok)queue.push(current);advanceTimer=setTimeout(()=>{advanceTimer=null;next()},700)}
 function checkWrite(){let l=D.lists.find(x=>x.id===currentId);verdict(norm(answer.value,l)===norm(current.f,l),norm(answer.value,l)===norm(current.f,l)?'✓ Richtig!':'✗ Noch einmal')}
-let activeRecognition=null,speechTimer=null;
+let activeRecognition=null,speechTimer=null,speechSession=null,resultTimer=null,advanceTimer=null;
+function cancelQuizTimers(){if(resultTimer!==null)clearTimeout(resultTimer);if(advanceTimer!==null)clearTimeout(advanceTimer);resultTimer=advanceTimer=null;const b=el('speakBtn');if(b)b.disabled=false}
 function speechErrorText(c){if(c==='not-allowed'||c==='service-not-allowed')return 'Mikrofonzugriff wurde nicht erlaubt.';if(c==='no-speech')return 'Nichts verstanden – bitte erneut versuchen.';if(c==='audio-capture')return 'Kein Mikrofon verfügbar.';return 'Spracherkennung beendet – bitte erneut versuchen.'}
-function clearSpeech(){if(speechTimer){clearTimeout(speechTimer);speechTimer=null}if(activeRecognition){try{activeRecognition.abort()}catch(e){}activeRecognition=null}}
+function finishSpeech(session){
+ if(speechSession!==session)return;
+ // Invalidate first: even synchronous abort callbacks cannot touch a later session.
+ speechSession=null;activeRecognition=null;
+ if(session.timer!==null)clearTimeout(session.timer);session.timer=null;speechTimer=null;
+ const r=session.recognition;r.onresult=r.onerror=r.onend=null;
+ session.button.disabled=false;
+ try{r.abort()}catch(e){}
+}
+function clearSpeech(){if(speechSession)finishSpeech(speechSession)}
+function beginSpeech(button,status,onResult){
+ clearSpeech();
+ const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+ if(!SR)return alert('Spracherkennung wird von diesem Browser nicht unterstützt.');
+ let r;try{r=new SR()}catch(e){button.disabled=false;status.textContent='Spracherkennung konnte nicht gestartet werden.';return}
+ const session={recognition:r,button,timer:null};speechSession=session;activeRecognition=r;
+ button.disabled=true;status.textContent='🎙 Ich höre zu …';r.lang='de-DE';r.interimResults=false;r.maxAlternatives=1;
+ r.onresult=e=>{
+  if(speechSession!==session)return;
+  const t=e.results&&e.results[0]&&e.results[0][0]&&e.results[0][0].transcript;
+  if(typeof t!=='string'||!t.trim()){status.textContent='Nichts verstanden – bitte erneut versuchen.';finishSpeech(session);return}
+  finishSpeech(session);onResult(t);
+ };
+ r.onerror=e=>{if(speechSession!==session)return;status.textContent=speechErrorText(e.error);finishSpeech(session)};
+ r.onend=()=>{if(speechSession!==session)return;status.textContent='Nichts verstanden – bitte erneut versuchen.';finishSpeech(session)};
+ session.timer=setTimeout(()=>{if(speechSession!==session)return;status.textContent='Zeit abgelaufen – bitte erneut versuchen.';finishSpeech(session)},8000);speechTimer=session.timer;
+ try{r.start()}catch(e){if(speechSession===session){status.textContent='Spracherkennung konnte nicht gestartet werden.';finishSpeech(session)}}
+}
 function listen(){
- const SR=window.SpeechRecognition||window.webkitSpeechRecognition;if(!SR)return alert('Spracherkennung wird von diesem Browser nicht unterstützt.');
- clearSpeech();const h=el('heard');h.textContent='🎙 Ich höre zu …';const r=new SR();activeRecognition=r;r.lang='de-DE';r.interimResults=false;r.maxAlternatives=1;let got=false;
- r.onresult=e=>{got=true;const t=e.results[0][0].transcript;h.textContent='Erkannt: '+t;const l=D.lists.find(x=>x.id===currentId),ok=current.g.some(g=>norm(g,l)===norm(t,l));setTimeout(()=>verdict(ok,ok?'✓ Richtig!':'✗ Noch einmal'),300)};
- r.onerror=e=>h.textContent=speechErrorText(e.error);
- r.onend=()=>{if(speechTimer){clearTimeout(speechTimer);speechTimer=null}activeRecognition=null;if(!got&&h.textContent==='🎙 Ich höre zu …')h.textContent='Nichts verstanden – bitte erneut versuchen.'};
- speechTimer=setTimeout(()=>{if(activeRecognition===r){h.textContent='Zeit abgelaufen – bitte erneut versuchen.';try{r.abort()}catch(e){}}},8000);
- try{r.start()}catch(e){h.textContent='Spracherkennung konnte nicht gestartet werden.';clearSpeech()}
+ if(lastMode!=='speak'||!current||el('quiz').classList.contains('hidden')||resultTimer!==null||advanceTimer!==null)return;
+ const word=current,listId=currentId,h=el('heard'),button=el('speakBtn');
+ beginSpeech(button,h,t=>{
+  if(current!==word||currentId!==listId||el('quiz').classList.contains('hidden'))return;
+  h.textContent='Erkannt: '+t;const l=D.lists.find(x=>x.id===listId),ok=word.g.some(g=>norm(g,l)===norm(t,l));
+  button.disabled=true;
+  resultTimer=setTimeout(()=>{resultTimer=null;if(current!==word||currentId!==listId||el('quiz').classList.contains('hidden'))return;verdict(ok,ok?'✓ Richtig!':'✗ Noch einmal')},300);
+ });
 }
 function tone(ok){if(!D.sound)return;try{let a=new (AudioContext||webkitAudioContext)(),o=a.createOscillator(),g=a.createGain();o.frequency.value=ok?660:220;o.connect(g);g.connect(a.destination);g.gain.value=.04;o.start();o.stop(a.currentTime+.12)}catch(e){}}
 function complete(){let sec=Math.round((Date.now()-started)/1000);D.sessions.push({p:D.active,l:currentId,mode:lastMode,sec,date:new Date().toISOString()});save();if(D.vibrate&&navigator.vibrate)navigator.vibrate([80,40,80]);show('finish');el('finishInfo').textContent=`Zeit: ${Math.floor(sec/60)}:${String(sec%60).padStart(2,'0')} Minuten`;el('fire').innerHTML='';for(let i=0;i<55;i++){let s=document.createElement('span');s.className='conf';s.textContent=['✨','⭐','🎉','●'][i%4];s.style.left=Math.random()*100+'%';s.style.animationDelay=Math.random()*.5+'s';el('fire').appendChild(s)}setTimeout(()=>el('fire').innerHTML='',2600)}
@@ -150,22 +125,20 @@ function showStats(){show('stats');let ss=D.sessions.filter(s=>s.p===D.active),t
 function exportData(){let b=new Blob([JSON.stringify(D,null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='Vokabeltrainer-Backup.json';a.click()}
 function importData(el){let f=el.files[0];if(!f)return;let r=new FileReader();r.onload=()=>{try{D=JSON.parse(r.result);save();show('home')}catch(e){alert('Backup konnte nicht gelesen werden.')}};r.readAsText(f)}
 function dictateGerman(){
- const SR=window.SpeechRecognition||window.webkitSpeechRecognition;if(!SR)return alert('Spracherkennung wird von diesem Browser nicht unterstützt.');
- clearSpeech();const btn=el('dictateBtn'),st=el('dictateStatus');btn.disabled=true;st.textContent='🎙 Ich höre zu …';const r=new SR();activeRecognition=r;r.lang='de-DE';r.interimResults=false;r.maxAlternatives=1;let got=false;
- r.onresult=e=>{
-  got=true;
-  let t=e.results[0][0].transcript.trim();
+ const btn=el('dictateBtn'),st=el('dictateStatus');
+ beginSpeech(btn,st,transcript=>{
+  let t=transcript.trim();
   const lowerFirstWords=new Set(['Die','Der','Das','Den','Dem','Des','Ein','Eine','Einen','Einem','Einer','Eines','Mein','Meine','Meinen','Meinem','Meiner','Meines','Dein','Deine','Deinen','Deinem','Deiner','Deines','Sein','Seine','Ihr','Ihre','Unser','Unsere','Euer','Eure','Kein','Keine','Dieser','Diese','Dieses','Jener','Jene','Jenes']);
   const m=t.match(/^([^\s]+)(.*)$/);
   if(m&&lowerFirstWords.has(m[1]))t=m[1].charAt(0).toLowerCase()+m[1].slice(1)+m[2];
   const old=el('german').value.trim();
   el('german').value=old?old+' | '+t:t;
+
   st.textContent='Erkannt: '+t;
-};
- r.onerror=e=>st.textContent=speechErrorText(e.error);
- r.onend=()=>{if(speechTimer){clearTimeout(speechTimer);speechTimer=null}activeRecognition=null;btn.disabled=false;if(!got&&st.textContent==='🎙 Ich höre zu …')st.textContent='Nichts verstanden – bitte erneut versuchen.'};
- speechTimer=setTimeout(()=>{if(activeRecognition===r){st.textContent='Zeit abgelaufen – bitte erneut versuchen.';try{r.abort()}catch(e){}}},8000);
- try{r.start()}catch(e){st.textContent='Spracherkennung konnte nicht gestartet werden.';btn.disabled=false;clearSpeech()}
+ });
 }
+document.addEventListener('visibilitychange',()=>{if(document.hidden){clearSpeech();if(resultTimer!==null){clearTimeout(resultTimer);resultTimer=null;el('speakBtn').disabled=false}}});
+window.addEventListener('pagehide',()=>{clearSpeech();cancelQuizTimers()});
+function photoHint(){alert('Foto wurde ausgewählt. Vollautomatische OCR ist in dieser rein lokalen GitHub-Pages-Version noch nicht zuverlässig genug. Nutze vorerst Masseneingabe oder die iOS-Texterkennung zum Kopieren des Textes; die Importmaske bleibt für die spätere OCR-Erweiterung vorbereitet.')}
 show('home');
 </script></body></html>
