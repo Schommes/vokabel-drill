@@ -72,11 +72,42 @@ function renderWords(){el('words').innerHTML=(tmp||[]).map((w,i)=>`<div class=it
 function saveList(){if(!el('title').value.trim()||!tmp.length)return alert('Bitte Titel und mindestens eine Vokabel eingeben.');let l={id:editId||'l'+Date.now(),title:el('title').value.trim(),lang:el('lang').value,case:document.getElementById('case').checked,accent:accent.checked,words:tmp};if(editId)D.lists[D.lists.findIndex(x=>x.id===editId)]=l;else D.lists.push(l);save();show('home')}
 function delList(id){if(confirm('Diese Vokabelliste wirklich löschen?')){D.lists=D.lists.filter(x=>x.id!==id);save();renderHome()}}
 function openList(id){currentId=id;el('modeTitle').textContent=D.lists.find(x=>x.id===id).title;show('modes')}function editCurrent(){editList(currentId)}
-function norm(s,l){s=s.trim();if(!l.case)s=s.toLowerCase();if(!l.accent)s=s.normalize('NFD').replace(/[\u0300-\u036f]/g,'');return s.replace(/[.!?]+$/,'').trim()}
+function norm(s,l){
+ s=String(s).normalize('NFC').trim();
+ if(!l.case)s=s.toLowerCase();
+ if(!l.accent)s=s.normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+ // Speech input omits apostrophes, placeholder dots and trailing prefix hyphens.
+ return s.replace(/['’‘ʼ＇]/g,'').replace(/\.{3,}|…/g,' ')
+  .replace(/[.!?]+$/,'').replace(/[-‐‑‒–—−]+$/,'').replace(/\s+/g,' ').trim();
+}
+function answerForms(s,l){
+ const forms=[s];
+ const explanation=String(s).match(/\(\s*=\s*([^)]*)\)/);
+ if(explanation){forms.push(String(s).replace(explanation[0],'').trim());forms.push(explanation[1].trim())}
+ return [...new Set(forms.map(x=>norm(x,l)).filter(Boolean))];
+}
+function matchesAnswer(input,solutions,l){
+ const actual=norm(input,l),forms=solutions.map(s=>answerForms(s,l));
+ if(forms.some(options=>options.includes(actual)))return true;
+ if(forms.length<2||forms.length>12)return false;
+ // Also accept all listed alternatives spoken consecutively, in any order.
+ const joined=actual.replace(/[,;|/]/g,' ').replace(/\s+/g,' ').trim();
+ const seen=new Set(),all=(1<<forms.length)-1;
+ function consume(rest,used){
+  if(!rest)return used===all;
+  const key=used+':'+rest;if(seen.has(key))return false;seen.add(key);
+  for(let i=0;i<forms.length;i++)if(!(used&(1<<i)))for(const option of forms[i]){
+   if(rest===option&&consume('',used|(1<<i)))return true;
+   if(rest.startsWith(option+' ')&&consume(rest.slice(option.length+1),used|(1<<i)))return true;
+  }
+  return false;
+ }
+ return consume(joined,0);
+}
 function start(mode){lastMode=mode;let l=D.lists.find(x=>x.id===currentId);queue=[...l.words].sort(()=>Math.random()-.5).map(w=>({...w}));started=Date.now();show('quiz');el('speakUI').classList.toggle('hidden',mode!=='speak');el('writeUI').classList.toggle('hidden',mode!=='write');next()}
 function next(){clearSpeech();cancelQuizTimers();if(!queue.length)return complete();current=queue.shift();let l=D.lists.find(x=>x.id===currentId);document.getElementById('prompt').textContent=lastMode==='speak'?current.f:current.g[0];document.getElementById('feedback').classList.add('hidden');document.getElementById('heard').textContent='';document.getElementById('answer').value='';document.getElementById('qcount').textContent=`Noch ${queue.length+1} Vokabel${queue.length?'n':''}`;document.getElementById('bar').style.width=((l.words.length-queue.length-1)/l.words.length*100)+'%';if(lastMode==='write')setTimeout(()=>document.getElementById('answer').focus(),100)}
 function verdict(ok,msg){clearSpeech();feedback.className='card center '+(ok?'ok':'bad');feedback.textContent=msg;feedback.classList.remove('hidden');tone(ok);if(!ok)queue.push(current);advanceTimer=setTimeout(()=>{advanceTimer=null;next()},700)}
-function checkWrite(){let l=D.lists.find(x=>x.id===currentId);verdict(norm(answer.value,l)===norm(current.f,l),norm(answer.value,l)===norm(current.f,l)?'✓ Richtig!':'✗ Noch einmal')}
+function checkWrite(){let l=D.lists.find(x=>x.id===currentId),ok=matchesAnswer(answer.value,[current.f],l);verdict(ok,ok?'✓ Richtig!':'✗ Noch einmal')}
 let activeRecognition=null,speechTimer=null,speechSession=null,resultTimer=null,advanceTimer=null;
 function cancelQuizTimers(){if(resultTimer!==null)clearTimeout(resultTimer);if(advanceTimer!==null)clearTimeout(advanceTimer);resultTimer=advanceTimer=null;const b=el('speakBtn');if(b)b.disabled=false}
 function speechErrorText(c){if(c==='not-allowed'||c==='service-not-allowed')return 'Mikrofonzugriff wurde nicht erlaubt.';if(c==='no-speech')return 'Nichts verstanden – bitte erneut versuchen.';if(c==='audio-capture')return 'Kein Mikrofon verfügbar.';return 'Spracherkennung beendet – bitte erneut versuchen.'}
@@ -113,7 +144,7 @@ function listen(){
  const word=current,listId=currentId,h=el('heard'),button=el('speakBtn');
  beginSpeech(button,h,t=>{
   if(current!==word||currentId!==listId||el('quiz').classList.contains('hidden'))return;
-  h.textContent='Erkannt: '+t;const l=D.lists.find(x=>x.id===listId),ok=word.g.some(g=>norm(g,l)===norm(t,l));
+  h.textContent='Erkannt: '+t;const l=D.lists.find(x=>x.id===listId),ok=matchesAnswer(t,word.g,l);
   button.disabled=true;
   resultTimer=setTimeout(()=>{resultTimer=null;if(current!==word||currentId!==listId||el('quiz').classList.contains('hidden'))return;verdict(ok,ok?'✓ Richtig!':'✗ Noch einmal')},300);
  });
